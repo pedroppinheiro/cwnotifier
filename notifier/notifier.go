@@ -80,7 +80,7 @@ func NotifyProgramStart() {
 	log.Printf("Program start notification emitted.")
 }
 
-// NotifyError emits the windows notification about an error that occured in the program
+// NotifyError emits the windows notification about an error that occurred in the program
 func NotifyError() {
 	err := errorNotification.Push()
 	if err != nil {
