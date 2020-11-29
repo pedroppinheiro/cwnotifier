@@ -1,0 +1,47 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.15.5
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /go/src/github.com/pedroppinheiro/cwnotifier
+
+    environment: # environment variables for the build itself
+      BIN: /tmp/bin # path to where the build will be saved
+
+    steps:
+      - checkout
+      # specify any bash command here prefixed with `run: `
+      - run: sudo apt install zip
+      - run: mkdir -p $BIN # create the folder there the build will be saved
+      #- run: mkdir -p $BIN/cwnotifier_$(git describe --always --long --dirty) # create the folder there the build will be saved
+      
+      - run: go env
+      - run: go get -v -t -d ./...
+      
+      - run: mkdir cwnotifier
+      - run: GOOS=windows GOARCH=amd64 go build -o ./cwnotifier -ldflags="-H=windowsgui -X main.version=$(git describe --always --long --dirty)"
+      
+      - run: cp -r assets ./cwnotifier
+      - run: cp config.yaml ./cwnotifier
+      - run: cp manual_de_uso.txt ./cwnotifier
+      
+      - run: zip -r cwnotifier_$(git describe --always --long --dirty) cwnotifier/*
+      - run: cp *.zip $BIN
+      
+      - store_artifacts: # upload test summary for display in Artifacts
+          path: /tmp/bin
+          destination: bin

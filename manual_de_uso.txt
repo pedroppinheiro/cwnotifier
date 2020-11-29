@@ -1,0 +1,6 @@
+Como usar:
+
+1 - Abrir o arquivo config.yaml e alterar conforme o necessário
+2 - Executar o cwnotifier.exe
+3 - A aplicação irá rodar na bandeja do sistema do windows, onde também poderá ser fechada.
+4 - Em caso de erros o log do programa consta no mesmo lugar do executável
