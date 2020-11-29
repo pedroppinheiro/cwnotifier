@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -17,8 +16,8 @@ import (
 
 const (
 	validTimeStart string = "08:00"
-	validTimeEnd   string = "18:00"
-	jobSleepPeriod        = 5 * time.Minute
+	validTimeEnd   string = "17:59"
+	jobSleepPeriod        = 1 * time.Minute
 )
 
 func init() {

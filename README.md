@@ -2,7 +2,6 @@
 
 Notifier for cherwell's SLA
 
-
 To build use the following command:
 
     https://stackoverflow.com/a/36728885/1252947
