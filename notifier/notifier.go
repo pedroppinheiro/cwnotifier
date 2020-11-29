@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	cherwellLogoName string = "cherwell.png"
+	cherwellLogoName string = "assets\\cherwell.png"
 
 	notificationTitle   string = "Aviso de chamado prioritário!"
 	notificationMessage string = "Há chamados que demandam sua atenção urgente!"

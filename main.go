@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/getlantern/systray"
 	"github.com/pedroppinheiro/cwnotifier/config"
 	"github.com/pedroppinheiro/cwnotifier/database"
 	"github.com/pedroppinheiro/cwnotifier/notifier"
@@ -38,6 +39,13 @@ func main() {
 		}
 	}()
 
+	systray.Run(onReady, nil)
+	log.Printf("CWNotifier program has finished")
+}
+
+func onReady() {
+	configureSystemtray()
+
 	configuration := readConfiguration(defaultYAMLName)
 
 	database.Connect(configuration.Database)
@@ -57,6 +65,38 @@ func main() {
 
 		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
 	}
+}
+
+// https://dev.to/osuka42/building-a-simple-system-tray-app-with-go-899
+func configureSystemtray() {
+	systray.SetIcon(readFileContent("assets\\app.ico"))
+	systray.SetTitle("CWNotifier")
+	systray.SetTooltip("CWNotifier")
+	quitMenuItem := systray.AddMenuItem("Quit", "Quit the app")
+	quitMenuItem.SetIcon(readFileContent("assets\\quit.ico"))
+	go func() {
+		<-quitMenuItem.ClickedCh
+		log.Println("User requested to quit")
+		systray.Quit()
+
+	}()
+}
+
+func readConfiguration(yamlLocation string) config.Configuration {
+	yamlContent := readFileContent(yamlLocation)
+	configuration, err := config.ReadConfiguration(yamlContent)
+	if err != nil {
+		log.Panic(err)
+	}
+	return configuration
+}
+
+func readFileContent(filePath string) []byte {
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Panic(err)
+	}
+	return content
 }
 
 func shouldCheckDatabase(givenTime time.Time, jobConfig config.Job) (bool, error) {
@@ -92,21 +132,4 @@ func inTimeSpan(start, end, check time.Time) bool {
 		return check.Equal(start)
 	}
 	return !start.After(check) || !end.Before(check)
-}
-
-func readConfiguration(yamlLocation string) config.Configuration {
-	yamlContent := readFileContent(yamlLocation)
-	configuration, err := config.ReadConfiguration(yamlContent)
-	if err != nil {
-		log.Panic(err)
-	}
-	return configuration
-}
-
-func readFileContent(filePath string) []byte {
-	content, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		log.Panic(err)
-	}
-	return content
 }
