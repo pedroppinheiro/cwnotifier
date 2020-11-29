@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -73,7 +74,10 @@ func shouldCheckDatabase(givenTime time.Time) (bool, error) {
 	start, _ := time.Parse(newLayout, validTimeStart)
 	end, _ := time.Parse(newLayout, validTimeEnd)
 
-	isBetweenValidTime := inTimeSpan(start, end, givenTime)
+	checkTimeString := fmt.Sprintf("%02d:%02d", givenTime.Hour(), givenTime.Minute()) // https://stackoverflow.com/a/51546906/1252947
+	check, _ := time.Parse(newLayout, checkTimeString)
+
+	isBetweenValidTime := inTimeSpan(start, end, check)
 
 	if isBetweenValidTime {
 		return true, nil
