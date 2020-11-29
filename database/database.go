@@ -5,15 +5,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+
+	"github.com/pedroppinheiro/cwnotifier/config"
 )
 
 const (
-	server   string = "localhost"
-	port     string = "1433"
-	user     string = "sa"
-	password string = "redeinf123"
-	database string = "cherwell"
-
 	verifyQuerySQL                string = "select 1"
 	getNumberOfPriorityTasksQuery string = "select count(*) from cherwell where prioridade = 1"
 )
@@ -21,12 +17,12 @@ const (
 var connection *sql.DB
 
 // Connect connects to the database
-func Connect() {
+func Connect(databaseConfig config.Database) {
 	var errConnect, errVerifyConnection error
 
 	connection, errConnect = sql.Open(
 		"mssql",
-		fmt.Sprintf("server=%v;port=%v;user id=%v;password=%v;database=%v;", server, port, user, password, database),
+		fmt.Sprintf("server=%v;port=%v;user id=%v;password=%v;database=%v;", databaseConfig.Server, databaseConfig.Port, databaseConfig.User, databaseConfig.Password, databaseConfig.DatabaseName),
 	)
 
 	if errConnect != nil {

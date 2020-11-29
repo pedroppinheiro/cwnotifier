@@ -3,9 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/pedroppinheiro/cwnotifier/config"
 	"github.com/pedroppinheiro/cwnotifier/database"
 	"github.com/pedroppinheiro/cwnotifier/notifier"
 
@@ -14,11 +16,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-const (
-	validTimeStart string = "08:00"
-	validTimeEnd   string = "17:59"
-	jobSleepPeriod        = 1 * time.Minute
-)
+const defaultYAMLName string = "config.yaml"
 
 func init() {
 	// configuring log to file and console
@@ -26,7 +24,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	//multiWriter := io.MultiWriter(os.Stdout, logFile)
 	log.SetOutput(logFile)
 }
 
@@ -37,17 +34,18 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			notifier.NotifyError()
-			database.CloseConnection()
 			log.Fatal("CWNotifier is closing")
 		}
 	}()
 
-	database.Connect()
+	configuration := readConfiguration(defaultYAMLName)
+
+	database.Connect(configuration.Database)
 	defer database.CloseConnection()
 
 	for true {
 
-		shouldRun, err := shouldCheckDatabase(time.Now())
+		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
 
 		if shouldRun {
 			if database.GetNumberOfPriorityTasks() >= 1 {
@@ -57,11 +55,11 @@ func main() {
 			log.Println("Skipped checking cherwell. ", err)
 		}
 
-		time.Sleep(jobSleepPeriod)
+		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
 	}
 }
 
-func shouldCheckDatabase(givenTime time.Time) (bool, error) {
+func shouldCheckDatabase(givenTime time.Time, jobConfig config.Job) (bool, error) {
 	isSaturday := givenTime.Weekday() == time.Saturday
 	isSunday := givenTime.Weekday() == time.Sunday
 
@@ -70,8 +68,8 @@ func shouldCheckDatabase(givenTime time.Time) (bool, error) {
 	}
 
 	newLayout := "15:04"
-	start, _ := time.Parse(newLayout, validTimeStart)
-	end, _ := time.Parse(newLayout, validTimeEnd)
+	start, _ := time.Parse(newLayout, jobConfig.Start)
+	end, _ := time.Parse(newLayout, jobConfig.End)
 
 	checkTimeString := fmt.Sprintf("%02d:%02d", givenTime.Hour(), givenTime.Minute()) // https://stackoverflow.com/a/51546906/1252947
 	check, _ := time.Parse(newLayout, checkTimeString)
@@ -94,4 +92,21 @@ func inTimeSpan(start, end, check time.Time) bool {
 		return check.Equal(start)
 	}
 	return !start.After(check) || !end.Before(check)
+}
+
+func readConfiguration(yamlLocation string) config.Configuration {
+	yamlContent := readFileContent(yamlLocation)
+	configuration, err := config.ReadConfiguration(yamlContent)
+	if err != nil {
+		log.Panic(err)
+	}
+	return configuration
+}
+
+func readFileContent(filePath string) []byte {
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Panic(err)
+	}
+	return content
 }
