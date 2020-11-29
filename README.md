@@ -1,5 +1,8 @@
 # cwnotifier
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/pedroppinheiro/cwnotifier)](https://goreportcard.com/report/github.com/pedroppinheiro/cwnotifier)
+[![GoDoc](https://godoc.org/github.com/pedroppinheiro/cwnotifier?status.svg)](https://godoc.org/github.com/pedroppinheiro/cwnotifier)
+
 Notifier for cherwell's SLA
 
 To avoid opening a console at application startup, use these compile flags (https://stackoverflow.com/a/36728885/1252947):
