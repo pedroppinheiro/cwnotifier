@@ -27,8 +27,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-	log.SetOutput(multiWriter)
+	//multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(logFile)
 }
 
 func main() {
