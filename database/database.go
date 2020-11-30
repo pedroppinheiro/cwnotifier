@@ -38,6 +38,16 @@ func Connect(databaseConfig config.Database) {
 	log.Println("Connected successfully to database.")
 }
 
+func verifyConnection() error {
+	_, err := executeQuery(verifyQuerySQL)
+	return err
+}
+
+func executeQuery(query string) (*sql.Rows, error) {
+	log.Printf("Executing query \"%v\".", query)
+	return connection.Query(query)
+}
+
 // GetNumberOfPriorityTasks returns the number of priority tasks
 func GetNumberOfPriorityTasks() int {
 	var queryResult string
@@ -62,16 +72,6 @@ func GetNumberOfPriorityTasks() int {
 	}
 
 	return numberOfImportantTasks
-}
-
-func executeQuery(query string) (*sql.Rows, error) {
-	log.Printf("Executing query \"%v\".", query)
-	return connection.Query(query)
-}
-
-func verifyConnection() error {
-	_, err := executeQuery(verifyQuerySQL)
-	return err
 }
 
 // CloseConnection closes the connection
