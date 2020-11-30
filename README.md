@@ -10,7 +10,7 @@ Notifier for cherwell's tasks. To purpose of this project is to never miss an SL
 To avoid opening a console at application startup, use these compile flags (https://stackoverflow.com/a/36728885/1252947):
 
 ```sh
-go build -i -v -ldflags="-H=windowsgui -X main.version=$(git describe --always --long --dirty)"
+go build -i -v -ldflags="-H=windowsgui -X main.version=$(git describe --tags --always)"
 ```
 
 ### Notes

@@ -27,19 +27,18 @@ jobs:
       # specify any bash command here prefixed with `run: `
       - run: sudo apt install zip
       - run: mkdir -p $BIN # create the folder there the build will be saved
-      #- run: mkdir -p $BIN/cwnotifier_$(git describe --always --long --dirty) # create the folder there the build will be saved
       
       - run: go env
       - run: go get -v -t -d ./...
       
       - run: mkdir cwnotifier
-      - run: GOOS=windows GOARCH=amd64 go build -o ./cwnotifier -ldflags="-H=windowsgui -X main.version=$(git describe --always --long --dirty)"
+      - run: GOOS=windows GOARCH=amd64 go build -o ./cwnotifier -ldflags="-H=windowsgui -X main.version=$(git describe --tags --always)"
       
       - run: cp -r assets ./cwnotifier
       - run: cp config.yaml ./cwnotifier
       - run: cp manual_de_uso.txt ./cwnotifier
       
-      - run: zip -r cwnotifier_$(git describe --always --long --dirty) cwnotifier/*
+      - run: zip -r cwnotifier_$(git describe --tags --always) cwnotifier/*
       - run: cp *.zip $BIN
       
       - store_artifacts: # upload test summary for display in Artifacts
