@@ -1,5 +1,6 @@
 # cwnotifier
 
+![CircleCI](https://img.shields.io/circleci/build/github/pedroppinheiro/cwnotifier)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedroppinheiro/cwnotifier)](https://goreportcard.com/report/github.com/pedroppinheiro/cwnotifier)
 [![GoDoc](https://godoc.org/github.com/pedroppinheiro/cwnotifier?status.svg)](https://godoc.org/github.com/pedroppinheiro/cwnotifier)
 
