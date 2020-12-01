@@ -36,8 +36,7 @@ func init() {
 }
 
 func main() {
-	log.Printf("CWNotifier has started running. Program version: %v", version)
-	notifier.NotifyProgramStart()
+	log.Printf("CWNotifier is starting. Program version: %v", version)
 	systray.Run(onReady, nil)
 	log.Printf("CWNotifier has finished")
 }
@@ -55,6 +54,7 @@ func onReady() {
 	database.Connect(configuration.Database)
 	defer database.CloseConnection()
 
+	notifier.NotifyProgramStart()
 	for {
 		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
 
