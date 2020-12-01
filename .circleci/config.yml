@@ -38,7 +38,7 @@ jobs:
       - run: cp config.yaml ./cwnotifier
       - run: cp manual_de_uso.txt ./cwnotifier
       
-      - run: zip -r cwnotifier_$(git describe --tags --always) cwnotifier/*
+      - run: zip -r cwnotifier_$(git describe --tags --always).zip cwnotifier/*
       - run: cp *.zip $BIN
       
       - store_artifacts: # upload test summary for display in Artifacts
