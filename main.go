@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -17,14 +18,17 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-const defaultYAMLName string = "config.yaml"
+const (
+	defaultYAMLName string = "config.yaml"
+	defaultLogName  string = "log.txt"
+)
 
 // Version will be defined in compile time.
 var version = "undefined"
 
 func init() {
 	// configuring log to file
-	logFile, err := os.OpenFile("log.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	logFile, err := os.OpenFile(defaultLogName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -35,16 +39,11 @@ func main() {
 	log.Printf("CWNotifier has started running. Program version: %v", version)
 	notifier.NotifyProgramStart()
 	systray.Run(onReady, nil)
+	log.Printf("CWNotifier has finished")
 }
 
 func onReady() {
-	defer func() {
-		if r := recover(); r != nil {
-			notifier.NotifyError()
-			log.Fatal("CWNotifier is closing due to errors")
-		}
-		log.Printf("CWNotifier has finished")
-	}()
+	defer recoverFromError()
 
 	configureSystemtray()
 
@@ -56,7 +55,7 @@ func onReady() {
 	database.Connect(configuration.Database)
 	defer database.CloseConnection()
 
-	for true {
+	for {
 		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
 
 		if shouldRun && err == nil {
@@ -71,11 +70,33 @@ func onReady() {
 	}
 }
 
+func recoverFromError() {
+	if r := recover(); r != nil {
+		notifier.NotifyError()
+		log.Fatal("CWNotifier is closing due to errors")
+	}
+}
+
 // https://dev.to/osuka42/building-a-simple-system-tray-app-with-go-899
 func configureSystemtray() {
 	systray.SetIcon(readFileContent("assets\\app.ico"))
 	systray.SetTitle("CWNotifier")
 	systray.SetTooltip("CWNotifier")
+
+	showLogMenuItem := systray.AddMenuItem("Show log", "Show the app's log")
+	showLogMenuItem.SetIcon(readFileContent("assets\\log.ico"))
+	go func() {
+		for {
+			<-showLogMenuItem.ClickedCh
+			cmd := exec.Command("notepad", defaultLogName)
+			if err := cmd.Run(); err != nil {
+				log.Println("An error occurred during show log menu action. ", err)
+			} else {
+				log.Printf("Opened %v", defaultLogName)
+			}
+		}
+	}()
+
 	quitMenuItem := systray.AddMenuItem("Quit", "Quit the app")
 	quitMenuItem.SetIcon(readFileContent("assets\\quit.ico"))
 	go func() {
