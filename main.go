@@ -91,8 +91,6 @@ func configureSystemtray() {
 			cmd := exec.Command("notepad", defaultLogName)
 			if err := cmd.Run(); err != nil {
 				log.Println("An error occurred during show log menu action. ", err)
-			} else {
-				log.Printf("Opened %v", defaultLogName)
 			}
 		}
 	}()
