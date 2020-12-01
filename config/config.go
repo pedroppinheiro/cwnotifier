@@ -2,22 +2,27 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 
 	"gopkg.in/yaml.v2"
 )
 
-var defaultConfiguration Configuration = Configuration{
-	Job: Job{
-		Start:        "08:00",
-		End:          "17:59",
-		SleepMinutes: 1,
-	},
-	Database: Database{
-		Server: "localhost",
-		Port:   1433,
-		User:   "sa",
-	},
-}
+var (
+	timeRegex *regexp.Regexp = regexp.MustCompile(`(?m)\d\d:\d\d`)
+
+	defaultConfiguration Configuration = Configuration{
+		Job: Job{
+			Start:        "08:00",
+			End:          "17:59",
+			SleepMinutes: 1,
+		},
+		Database: Database{
+			Server: "localhost",
+			Port:   1433,
+			User:   "sa",
+		},
+	}
+)
 
 // Configuration is the representation of the config.yaml file
 type Configuration struct {
@@ -27,7 +32,12 @@ type Configuration struct {
 
 // Validate validates configuration values
 func (c Configuration) Validate() error {
-	return c.Database.Validate()
+	validationMessage := c.Job.Validate() + c.Database.Validate()
+	if validationMessage != "" {
+		return fmt.Errorf("Error in the config file.\n" + validationMessage)
+	}
+
+	return nil
 }
 
 // Job holds the job's configuration
@@ -47,7 +57,34 @@ type Database struct {
 }
 
 // Validate validates database values
-func (d Database) Validate() error {
+func (j Job) Validate() string {
+	validationMessage := ""
+
+	if !IsValidTime(j.Start) {
+		validationMessage += fmt.Sprintf("Invalid time given: %v. Should be in the form of hh:mm\n", j.Start)
+	}
+
+	if !IsValidTime(j.End) {
+		validationMessage += fmt.Sprintf("Invalid time given: %v. Should be in the form of hh:mm\n", j.End)
+	}
+
+	if j.SleepMinutes == 0 {
+		validationMessage += fmt.Sprintln("Config value job.sleepMinutes cannot be 0")
+	}
+
+	return validationMessage
+}
+
+// IsValidTime checks if the given time matches the expected "hh:mm" format
+func IsValidTime(time string) bool {
+	if len(timeRegex.FindStringIndex(time)) > 0 {
+		return true
+	}
+	return false
+}
+
+// Validate validates database values
+func (d Database) Validate() string {
 	validationMessage := ""
 
 	if d.Server == "" {
@@ -66,11 +103,7 @@ func (d Database) Validate() error {
 		validationMessage += fmt.Sprintln("database.databaseName cannot be empty")
 	}
 
-	if validationMessage != "" {
-		return fmt.Errorf("Error in the config file.\n" + validationMessage)
-	}
-
-	return nil
+	return validationMessage
 }
 
 // ReadConfiguration reads a YAML content and returns the equivalent Configuration struct

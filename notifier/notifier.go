@@ -17,7 +17,7 @@ const (
 	notificationMessage string = "Há chamados que demandam sua atenção urgente!"
 
 	errorNotificationTitle   string = "Erro!"
-	errorNotificationMessage string = "Um erro ocorreu durante a execução do programa. Verifique o arquivo de log."
+	errorNotificationMessage string = "Um erro ocorreu durante a execução e o programa foi encerrado. Verifique o arquivo de log."
 
 	programStartNotificationTitle   string = "CWNotifier started!"
 	programStartNotificationMessage string = "CWNotifier has started running."
