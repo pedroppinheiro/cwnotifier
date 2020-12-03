@@ -16,12 +16,12 @@ const (
 	getNumberOfIncidentsWithoutOwnerQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
 
 	//Chamados prioritários (1,2) que foram encaminhados para a GERIN e que estão sem responsável. Ao se atribuir ao chamado a notificação deve parar
-	getIncidentsWithoutOwnerNotificationQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
+	getIncidentsWithoutOwnerNotificationQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
 
 	//Tarefas prioritárias (1 ou 2) para a GERIN que estão sem responsável ou atribuídas para mim. Ao iniciar a tarefa a notificação deve parar
 	getTasksWithoutOwnerNotificationQuery string = `select t.ParentPublicID from Tarefas t
 													where (t.EmailResponsavel = 'smaia@banparanet.com.br' or t.EmailResponsavel = '')
-													and t.Status = 'Encaminhada'
+													and t.Status in ('Encaminhada', 'Nova')
 													and t.OwnedByTeam = 'SUSIS - GERIN'
 													and (select i.Prioridade from Incidente i where i.NumeroIncidente = t.ParentPublicID) in (1,2)`
 
