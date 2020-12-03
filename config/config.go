@@ -7,27 +7,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	timeRegex *regexp.Regexp = regexp.MustCompile(`(?m)\d\d:\d\d`)
-
-	defaultConfiguration Configuration = Configuration{
-		Job: Job{
-			Start:        "08:00",
-			End:          "17:59",
-			SleepMinutes: 1,
-		},
-		Database: Database{
-			Server: "localhost",
-			Port:   1433,
-			User:   "sa",
-		},
-	}
-)
+var timeRegex *regexp.Regexp = regexp.MustCompile(`(?m)\d\d:\d\d`)
 
 // Configuration is the representation of the config.yaml file
 type Configuration struct {
-	Job      Job
-	Database Database
+	User         User
+	Notification Notification
+	Job          Job
+	Database     Database
 }
 
 // Validate validates configuration values
@@ -40,20 +27,66 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
+// User holds the user's configuration
+type User struct {
+	Name  string
+	Email string
+	Team  string
+}
+
+// Notification holds the notification's configuration
+type Notification struct {
+	EnableIncidentsWithoutOwnerNotification    bool
+	EnableTasksWithoutOwnerNotification        bool
+	EnableIncidentsWithClosedTasksNotification bool
+	gotMarshalled                              bool
+}
+
+// IsNotificationsEnabled returns true if there is at least one notification enabled, otherwise returns false
+func (notification Notification) IsNotificationsEnabled() bool {
+	return notification.EnableIncidentsWithClosedTasksNotification || notification.EnableIncidentsWithoutOwnerNotification || notification.EnableTasksWithoutOwnerNotification
+}
+
+// UnmarshalYAML interface is implemented to give a custom behaviour when marshalling the yaml to the "Regex" field.
+// See https://godoc.org/gopkg.in/yaml.v2#Unmarshaler for more details
+func (notification *Notification) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	m := make(map[string]bool)
+	var err error
+	if err = unmarshal(&m); err != nil {
+		return err
+	}
+
+	value, isPresent := m["enableIncidentsWithoutOwnerNotification"]
+	if isPresent {
+		notification.EnableIncidentsWithoutOwnerNotification = value
+	} else {
+		notification.EnableIncidentsWithoutOwnerNotification = true
+	}
+
+	value, isPresent = m["enableTasksWithoutOwnerNotification"]
+	if isPresent {
+		notification.EnableTasksWithoutOwnerNotification = value
+	} else {
+		notification.EnableTasksWithoutOwnerNotification = true
+	}
+
+	value, isPresent = m["enableIncidentsWithClosedTasksNotification"]
+	if isPresent {
+		notification.EnableIncidentsWithClosedTasksNotification = value
+	} else {
+		notification.EnableIncidentsWithClosedTasksNotification = true
+	}
+
+	notification.gotMarshalled = true
+
+	return nil
+}
+
 // Job holds the job's configuration
 type Job struct {
 	Start        string
 	End          string
 	SleepMinutes int `yaml:"sleepMinutes"`
-}
-
-// Database holds the database's configuration
-type Database struct {
-	Server       string
-	Port         int
-	User         string
-	Password     string
-	DatabaseName string `yaml:"databaseName"`
 }
 
 // Validate validates database values
@@ -81,6 +114,15 @@ func IsValidTime(time string) bool {
 		return true
 	}
 	return false
+}
+
+// Database holds the database's configuration
+type Database struct {
+	Server       string
+	Port         int
+	User         string
+	Password     string
+	DatabaseName string `yaml:"databaseName"`
 }
 
 // Validate validates database values
@@ -117,6 +159,12 @@ func ReadConfiguration(yamlConfiguration []byte) (Configuration, error) {
 	err = configuration.Validate()
 	if err != nil {
 		return Configuration{}, err
+	}
+
+	if !configuration.Notification.gotMarshalled {
+		configuration.Notification.EnableIncidentsWithClosedTasksNotification = true
+		configuration.Notification.EnableIncidentsWithoutOwnerNotification = true
+		configuration.Notification.EnableTasksWithoutOwnerNotification = true
 	}
 
 	return configuration, err

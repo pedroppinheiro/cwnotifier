@@ -1,11 +1,22 @@
-job:
-  start: "08:00" # A partir de qual horário o programa irá checar o cherwell
-  end: "17:59" # Até qual horário o programa irá checar o cherwell
-  sleepMinutes: 5 # De quanto em quanto tempo em minutos o programa deve checar o cherwell
+# This file is used to configure some parts of the program. Bellow are the file with its default values
+# user:
+#   name: ""
+#   email: ""
+#   team: ""
+
+# notification:
+#    enableIncidentsWithoutOwnerNotification: false
+#    enableTasksWithoutOwnerNotification: false
+#    enableIncidentsWithClosedTasksNotification: false
+
+# job:
+#   start: "08:00" # A partir de qual horário o programa irá checar o cherwell
+#   end: "17:59" # Até qual horário o programa irá checar o cherwell
+#   sleepMinutes: 5 # De quanto em quanto tempo em minutos o programa deve checar o cherwell
       
-database: # Dados para a conexão com o banco de dados
-  server: ""
-  port: 1433
-  user: ""
-  password: ""
-  databaseName: "" # Nome do banco de dados do cherwell
+# database: # Dados para a conexão com o banco de dados
+#   server: ""
+#   port: 1433
+#   user: ""
+#   password: ""
+#   databaseName: "" # Nome do banco de dados do cherwell

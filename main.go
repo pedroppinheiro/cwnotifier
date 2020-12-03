@@ -51,23 +51,52 @@ func onReady() {
 		log.Panic(err)
 	}
 
+	if !configuration.Notification.IsNotificationsEnabled() {
+		notifier.NotifyNoNotificationsEnabled()
+		systray.Quit()
+		return
+	}
+
 	database.Connect(configuration.Database)
 	defer database.CloseConnection()
 
 	notifier.NotifyProgramStart()
 	for {
-		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
+		if configuration.Notification.EnableIncidentsWithoutOwnerNotification {
+			notifyIncidentsWithoutOwnerNotification(configuration.Job)
+		}
 
-		if shouldRun && err == nil {
-			if database.GetNumberOfPriorityIncidents() >= 1 {
-				notifier.Notify()
-			}
-		} else {
-			log.Println("Skipped checking cherwell. ", err)
+		if configuration.Notification.EnableTasksWithoutOwnerNotification {
+			notifyTasksWithoutOwnerNotification(configuration.Job)
+		}
+
+		if configuration.Notification.EnableIncidentsWithClosedTasksNotification {
+			notifyIncidentsWithClosedTasksNotification(configuration.Job)
 		}
 
 		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
 	}
+}
+
+func notifyIncidentsWithoutOwnerNotification(jobConfiguration config.Job) {
+	shouldNotify, err := shouldCheckDatabase(time.Now(), jobConfiguration)
+
+	if shouldNotify && err == nil {
+		// TODO must execute query "getIncidentsWithoutOwnerNotificationQuery" instead
+		if database.GetNumberOfIncidentsWithoutOwner() >= 1 {
+			notifier.NotifyIncidentsWithoutOwnerNotification()
+		}
+	} else {
+		log.Println("Skipped checking cherwell. ", err)
+	}
+}
+
+func notifyTasksWithoutOwnerNotification(jobConfiguration config.Job) {
+	//TODO
+}
+
+func notifyIncidentsWithClosedTasksNotification(jobConfiguration config.Job) {
+	// TODO
 }
 
 func recoverFromError() {
