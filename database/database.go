@@ -11,7 +11,7 @@ import (
 
 const (
 	verifyQuerySQL                string = "select 1"
-	getNumberOfPriorityTasksQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
+	getNumberOfPriorityTasksQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
 )
 
 var connection *sql.DB
