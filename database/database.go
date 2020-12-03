@@ -13,7 +13,7 @@ const (
 	verifyQuerySQL string = "select 1"
 
 	// TODO: remove this query
-	getNumberOfIncidentsWithoutOwnerQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
+	getNumberOfIncidentsWithoutOwnerQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
 
 	//Chamados prioritários (1,2) que foram encaminhados para a GERIN e que estão sem responsável. Ao se atribuir ao chamado a notificação deve parar
 	getIncidentsWithoutOwnerNotificationQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
