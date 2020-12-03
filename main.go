@@ -62,8 +62,14 @@ func onReady() {
 
 	notifier.NotifyProgramStart()
 	for {
+		shouldNotify, err := shouldCheckDatabase(time.Now(), configuration.Job)
+		if !shouldNotify || err != nil {
+			log.Println("Skipped checking cherwell. ", err)
+			continue
+		}
+
 		if configuration.Notification.EnableIncidentsWithoutOwnerNotification {
-			notifyIncidentsWithoutOwnerNotification(configuration.Job)
+			notifyIncidentsWithoutOwnerNotification(configuration)
 		}
 
 		if configuration.Notification.EnableTasksWithoutOwnerNotification {
@@ -78,16 +84,19 @@ func onReady() {
 	}
 }
 
-func notifyIncidentsWithoutOwnerNotification(jobConfiguration config.Job) {
-	shouldNotify, err := shouldCheckDatabase(time.Now(), jobConfiguration)
-
-	if shouldNotify && err == nil {
-		// TODO must execute query "getIncidentsWithoutOwnerNotificationQuery" instead
-		if database.GetNumberOfIncidentsWithoutOwner() >= 1 {
-			notifier.NotifyIncidentsWithoutOwnerNotification()
-		}
+func notifyIncidentsWithoutOwnerNotification(configuration config.Configuration) {
+	var team string
+	// used to maintain compatibility with previous versions in which the default was "SUSIS - GERIN"
+	if configuration.User.Team == "" {
+		team = "SUSIS - GERIN"
 	} else {
-		log.Println("Skipped checking cherwell. ", err)
+		team = configuration.User.Team
+	}
+
+	numberOfResults, result := database.GetIncidentsWithoutOwner(team)
+
+	if numberOfResults >= 1 {
+		notifier.NotifyIncidentsWithoutOwnerNotification(result)
 	}
 }
 

@@ -93,7 +93,9 @@ func init() {
 }
 
 // NotifyIncidentsWithoutOwnerNotification emits the windows notification about a priority cherwell's incident
-func NotifyIncidentsWithoutOwnerNotification() {
+func NotifyIncidentsWithoutOwnerNotification(incidents string) {
+
+	incidentsWithoutOwnerNotification.Message = incidentsWithoutOwnerNotification.Message + "\n" + incidents
 	err := incidentsWithoutOwnerNotification.Push()
 	if err != nil {
 		log.Panic(err)
