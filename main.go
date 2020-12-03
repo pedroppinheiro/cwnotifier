@@ -59,7 +59,7 @@ func onReady() {
 		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
 
 		if shouldRun && err == nil {
-			if database.GetNumberOfPriorityTasks() >= 1 {
+			if database.GetNumberOfPriorityIncidents() >= 1 {
 				notifier.Notify()
 			}
 		} else {

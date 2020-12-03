@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedroppinheiro/cwnotifier)](https://goreportcard.com/report/github.com/pedroppinheiro/cwnotifier)
 [![GoDoc](https://godoc.org/github.com/pedroppinheiro/cwnotifier?status.svg)](https://godoc.org/github.com/pedroppinheiro/cwnotifier)
 
-Notifier for cherwell's tasks. The purpose of this project is to never miss an SLA again.
+Notifier for cherwell's priority incidents. The purpose of this project is to never miss an SLA again.
 
 ## Build
 

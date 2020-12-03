@@ -60,7 +60,7 @@ func init() {
 	}
 }
 
-// Notify emits the windows notification about a priority cherwell's task
+// Notify emits the windows notification about a priority cherwell's incident
 func Notify() {
 	err := notification.Push()
 	if err != nil {

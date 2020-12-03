@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	verifyQuerySQL                string = "select 1"
-	getNumberOfPriorityTasksQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
+	verifyQuerySQL                    string = "select 1"
+	getNumberOfPriorityIncidentsQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status = 'Encaminhado'"
 )
 
 var connection *sql.DB
@@ -48,11 +48,11 @@ func executeQuery(query string) (*sql.Rows, error) {
 	return connection.Query(query)
 }
 
-// GetNumberOfPriorityTasks returns the number of priority tasks
-func GetNumberOfPriorityTasks() int {
+// GetNumberOfPriorityIncidents returns the number of priority incidents
+func GetNumberOfPriorityIncidents() int {
 	var queryResult string
 
-	rows, err := executeQuery(getNumberOfPriorityTasksQuery)
+	rows, err := executeQuery(getNumberOfPriorityIncidentsQuery)
 
 	if err != nil {
 		log.Panic(err)
@@ -65,13 +65,13 @@ func GetNumberOfPriorityTasks() int {
 		log.Printf("Query returned: %v\n", queryResult)
 	}
 
-	numberOfImportantTasks, err := strconv.Atoi(queryResult)
+	numberOfImportantIncidents, err := strconv.Atoi(queryResult)
 
 	if err != nil {
 		log.Panic(err)
 	}
 
-	return numberOfImportantTasks
+	return numberOfImportantIncidents
 }
 
 // CloseConnection closes the connection
