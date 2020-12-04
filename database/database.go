@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/pedroppinheiro/cwnotifier/config"
 )
@@ -12,30 +13,24 @@ const (
 	verifyQuerySQL string = "select 1"
 
 	//Chamados prioritários (1,2) que foram encaminhados para a GERIN e que estão sem responsável. Ao se atribuir ao chamado a notificação deve parar
-	getIncidentsWithoutOwnerNotificationQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = :team and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
+	getIncidentsWithoutOwnerQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = :team and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
 
 	//Tarefas prioritárias (1 ou 2) para a GERIN que estão sem responsável ou atribuídas para mim. Ao iniciar a tarefa a notificação deve parar
-	getTasksWithoutOwnerNotificationQuery string = `select t.ParentPublicID from Tarefas t
-													where (t.EmailResponsavel = 'smaia@banparanet.com.br' or t.EmailResponsavel = '')
+	getTasksWithoutOwnerQuery string = `select t.ParentPublicID from Tarefas t
+													where t.OwnedByTeam = :team
 													and t.Status in ('Encaminhada', 'Nova')
-													and t.OwnedByTeam = 'SUSIS - GERIN'
+													and (t.EmailResponsavel = :email or t.EmailResponsavel = '')
 													and (select i.Prioridade from Incidente i where i.NumeroIncidente = t.ParentPublicID) in (1,2)`
 
 	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
 	getIncidentsWithTasksQuery string = `select i.NumeroIncidente, i.Tarefas from Incidente i
-															where i.OwnedByTeam = 'SUSIS - GERIN' 
+															where i.OwnedByTeam = :team
 															and i.Prioridade in (1,2) 
 															and i.Status not in ('Resolvido', 'Fechado')
-															and (i.OwnerID = '' or i.OwnedBy = 'Pedro Victor Pontes Pinheiro')`
-	//TODO: pegar o texto e passar numa regex se da match de número de fechadas igual a tarefas
-	//exemplo de resposta:
-	//1240672                    1 Fechadas de 3 Tarefas
+															and (i.OwnerID = '' or i.OwnedBy = :userName)`
 
 	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
-	getChangesThatNeedToBeValidated string = `select NumeroMudanca from Mudanca where Status = 'Resolvida' and CreatedBy like '%Silvana%'`
-	//TODO: pegar o texto e passar numa regex se da match de número de fechadas igual a tarefas
-	//exemplo de resposta:
-	//1240672                    1 Fechadas de 3 Tarefas
+	getChangesThatNeedToBeValidatedQuery string = `select NumeroMudanca from Mudanca where Status = 'Resolvida' and CreatedBy = :userName`
 )
 
 var connection *sql.DB
@@ -72,18 +67,17 @@ func executeQuery(query string, args ...interface{}) (*sql.Rows, error) {
 	return connection.Query(query, args...)
 }
 
-// GetIncidentsWithoutOwner returns the number of priority incidents
-func GetIncidentsWithoutOwner(teamName string) (int, string) {
+// GetIncidentsWithoutOwner returns the incidents without owner
+func GetIncidentsWithoutOwner(teamName string) []string {
 	var (
-		incidentNumber  string
-		result          string
-		numberOfResults int
+		incidentNumber string
+		results        []string
 	)
 
-	rows, err := executeQuery(getIncidentsWithoutOwnerNotificationQuery, sql.Named("team", teamName))
+	rows, err := executeQuery(getIncidentsWithoutOwnerQuery, sql.Named("team", teamName))
 
 	if err != nil {
-		log.Panic("Error getting number of incidents without owner. ", err)
+		log.Panic("Error getting incidents without owner. ", err)
 	}
 	for rows.Next() {
 		err := rows.Scan(&incidentNumber)
@@ -91,18 +85,100 @@ func GetIncidentsWithoutOwner(teamName string) (int, string) {
 			log.Panic(err)
 		}
 
-		numberOfResults++
+		results = append(results, incidentNumber)
 
-		if result == "" {
-			result += incidentNumber
-		} else {
-			result += ", " + incidentNumber
+	}
+
+	log.Printf("GetIncidentsWithoutOwner: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetTasksWithoutOwner returns the tasks without owner
+func GetTasksWithoutOwner(teamName string, email string) []string {
+	var (
+		taskNumber string
+		results    []string
+	)
+
+	rows, err := executeQuery(getTasksWithoutOwnerQuery, sql.Named("team", teamName), sql.Named("email", email))
+
+	if err != nil {
+		log.Panic("Error getting tasks without owner. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&taskNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, taskNumber)
+
+	}
+
+	log.Printf("GetTasksWithoutOwner: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetIncidentsWithClosedTasks returns incidents with tasks
+func GetIncidentsWithClosedTasks(teamName string, userName string) []string {
+	var (
+		incidentNumber  string
+		taskDescription string
+		results         []string
+	)
+
+	rows, err := executeQuery(getIncidentsWithTasksQuery, sql.Named("team", teamName), sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting incidents with tasks. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&incidentNumber, &taskDescription)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		if isIncidentWithClosedTasks(taskDescription) {
+			results = append(results, incidentNumber)
 		}
 	}
 
-	log.Printf("Found %v results: %v", numberOfResults, result)
+	log.Printf("GetIncidentsWithClosedTasks: Found %v results: %v", len(results), results)
+	return results
+}
 
-	return numberOfResults, result
+var taskDescriptionRegex = regexp.MustCompile(`(?mi)(\d+) Fechadas de \\1 Tarefas`)
+
+func isIncidentWithClosedTasks(taskDescription string) bool {
+	if len(taskDescriptionRegex.FindStringIndex(taskDescription)) > 0 {
+		return true
+	}
+	return false
+}
+
+// GetChangesThatNeedToBeValidated returns changes that need to be validated
+func GetChangesThatNeedToBeValidated(userName string) []string {
+	var (
+		changeNumber string
+		results      []string
+	)
+
+	rows, err := executeQuery(getChangesThatNeedToBeValidatedQuery, sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting changes that need to be validated. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&changeNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, changeNumber)
+	}
+
+	log.Printf("GetChangesThatNeedToBeValidated: Found %v results: %v", len(results), results)
+	return results
 }
 
 // CloseConnection closes the connection

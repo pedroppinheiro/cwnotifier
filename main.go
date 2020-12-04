@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -51,6 +52,12 @@ func onReady() {
 		log.Panic(err)
 	}
 
+	// used to maintain compatibility with previous versions in which the default was "SUSIS - GERIN"
+	if configuration.User.Team == "" {
+		configuration.User.Team = "SUSIS - GERIN"
+		log.Println("user.team is empty, using \"SUSIS - GERIN\" as fallback.")
+	}
+
 	if !configuration.Notification.IsNotificationsEnabled() {
 		notifier.NotifyNoNotificationsEnabled()
 		systray.Quit()
@@ -73,11 +80,15 @@ func onReady() {
 		}
 
 		if configuration.Notification.EnableTasksWithoutOwnerNotification {
-			notifyTasksWithoutOwnerNotification(configuration.Job)
+			notifyTasksWithoutOwnerNotification(configuration)
 		}
 
 		if configuration.Notification.EnableIncidentsWithClosedTasksNotification {
-			notifyIncidentsWithClosedTasksNotification(configuration.Job)
+			notifyIncidentsWithClosedTasksNotification(configuration)
+		}
+
+		if configuration.Notification.EnableChangesThatNeedToBeValidatedNotification {
+			notifyChangesThatNeedToBeValidated(configuration)
 		}
 
 		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
@@ -85,27 +96,31 @@ func onReady() {
 }
 
 func notifyIncidentsWithoutOwnerNotification(configuration config.Configuration) {
-	var team string
-	// used to maintain compatibility with previous versions in which the default was "SUSIS - GERIN"
-	if configuration.User.Team == "" {
-		team = "SUSIS - GERIN"
-	} else {
-		team = configuration.User.Team
-	}
-
-	numberOfResults, result := database.GetIncidentsWithoutOwner(team)
-
-	if numberOfResults >= 1 {
-		notifier.NotifyIncidentsWithoutOwnerNotification(result)
+	incidents := database.GetIncidentsWithoutOwner(configuration.User.Team)
+	if len(incidents) >= 1 {
+		notifier.NotifyIncidentsWithoutOwner(strings.Join(incidents[:], ","))
 	}
 }
 
-func notifyTasksWithoutOwnerNotification(jobConfiguration config.Job) {
-	//TODO
+func notifyTasksWithoutOwnerNotification(configuration config.Configuration) {
+	tasks := database.GetTasksWithoutOwner(configuration.User.Team, configuration.User.Email)
+	if len(tasks) >= 1 {
+		notifier.NotifyTasksWithoutOwner(strings.Join(tasks[:], ","))
+	}
 }
 
-func notifyIncidentsWithClosedTasksNotification(jobConfiguration config.Job) {
-	// TODO
+func notifyIncidentsWithClosedTasksNotification(configuration config.Configuration) {
+	incidents := database.GetIncidentsWithClosedTasks(configuration.User.Team, configuration.User.Name)
+	if len(incidents) >= 1 {
+		notifier.NotifyIncidentsWithClosedTasks(strings.Join(incidents[:], ","))
+	}
+}
+
+func notifyChangesThatNeedToBeValidated(configuration config.Configuration) {
+	changes := database.GetChangesThatNeedToBeValidated(configuration.User.Name)
+	if len(changes) >= 1 {
+		notifier.NotifyChangesThatNeedToBeValidated(strings.Join(changes[:], ","))
+	}
 }
 
 func recoverFromError() {
@@ -188,15 +203,15 @@ func isWeekend(givenTime time.Time) bool {
 // https://stackoverflow.com/a/55093788/1252947
 func inTimeSpan(start, end, check string) (bool, error) {
 	if !config.IsValidTime(start) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", start)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", start)
 	}
 
 	if !config.IsValidTime(end) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", end)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", end)
 	}
 
 	if !config.IsValidTime(check) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", check)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", check)
 	}
 
 	newLayout := "15:04"

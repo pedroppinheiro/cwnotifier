@@ -22,6 +22,9 @@ const (
 	incidentsWithClosedTasksNotificationTitle   string = "Aviso de chamado prioritário apto a encerrar"
 	incidentsWithClosedTasksNotificationMessage string = "Há chamados prioritários que já podem ser encerrados!"
 
+	changesThatNeedToBeValidatedNotificationTitle   string = "Aviso de mudança que precisa ser validada"
+	changesThatNeedToBeValidatedNotificationMessage string = "Há mudanças que foram resolvidas e já podem ser validadas!"
+
 	noNotificationsEnabledTitle   string = "Nenhum notificação habilitada"
 	noNotificationsEnabledMessage string = "O programa está encerrando pois nenhuma notificação está habilitada. Por favor habilite no arquivo de configuração"
 
@@ -50,6 +53,13 @@ var incidentsWithClosedTasksNotification toast.Notification = toast.Notification
 	AppID:    "CWNotifier",
 	Title:    utf8toASCII(incidentsWithClosedTasksNotificationTitle),
 	Message:  utf8toASCII(incidentsWithClosedTasksNotificationMessage),
+	Duration: "short",
+}
+
+var changesThatNeedToBeValidatedNotification toast.Notification = toast.Notification{
+	AppID:    "CWNotifier",
+	Title:    utf8toASCII(changesThatNeedToBeValidatedNotificationTitle),
+	Message:  utf8toASCII(changesThatNeedToBeValidatedNotificationMessage),
 	Duration: "short",
 }
 
@@ -87,41 +97,54 @@ func init() {
 		incidentsWithoutOwnerNotification.Icon = cherwellLogoLocation
 		tasksWithoutOwnerNotification.Icon = cherwellLogoLocation
 		incidentsWithClosedTasksNotification.Icon = cherwellLogoLocation
+		changesThatNeedToBeValidatedNotification.Icon = cherwellLogoLocation
 	} else {
 		log.Printf("File \"%v\" was not found.\n", cherwellLogoLocation)
 	}
 }
 
-// NotifyIncidentsWithoutOwnerNotification emits the windows notification about a priority cherwell's incident
-func NotifyIncidentsWithoutOwnerNotification(incidents string) {
-
+// NotifyIncidentsWithoutOwner emits the windows notification about a priority cherwell's incident
+func NotifyIncidentsWithoutOwner(incidents string) {
 	incidentsWithoutOwnerNotification.Message = incidentsWithoutOwnerNotification.Message + "\n" + incidents
 	err := incidentsWithoutOwnerNotification.Push()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	log.Printf("Notification emitted.")
+	log.Printf("incidentsWithoutOwnerNotification emitted.")
 }
 
-// NotifyTasksWithoutOwnerNotification emits the windows notification about a priority cherwell's incident
-func NotifyTasksWithoutOwnerNotification() {
+// NotifyTasksWithoutOwner emits the windows notification about a priority cherwell's incident
+func NotifyTasksWithoutOwner(tasks string) {
+	tasksWithoutOwnerNotification.Message = tasksWithoutOwnerNotification.Message + "\n" + tasks
 	err := tasksWithoutOwnerNotification.Push()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	log.Printf("Notification emitted.")
+	log.Printf("tasksWithoutOwnerNotification emitted.")
 }
 
-// NotifyIncidentsWithClosedTasksNotification emits the windows notification about a priority cherwell's incident
-func NotifyIncidentsWithClosedTasksNotification() {
+// NotifyIncidentsWithClosedTasks emits the windows notification about a priority cherwell's incident
+func NotifyIncidentsWithClosedTasks(incidents string) {
+	incidentsWithClosedTasksNotification.Message = incidentsWithClosedTasksNotification.Message + "\n" + incidents
 	err := incidentsWithClosedTasksNotification.Push()
 	if err != nil {
 		log.Panic(err)
 	}
 
-	log.Printf("Notification emitted.")
+	log.Printf("incidentsWithClosedTasksNotification emitted.")
+}
+
+// NotifyChangesThatNeedToBeValidated emits the windows notification about a change that has been resolved and can be validated
+func NotifyChangesThatNeedToBeValidated(changes string) {
+	changesThatNeedToBeValidatedNotification.Message = changesThatNeedToBeValidatedNotification.Message + "\n" + changes
+	err := changesThatNeedToBeValidatedNotification.Push()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("changesThatNeedToBeValidatedNotification emitted.")
 }
 
 // NotifyProgramStart emits the windows notification about the start of the program
@@ -151,7 +174,7 @@ func NotifyNoNotificationsEnabled() {
 		log.Panic(err)
 	}
 
-	log.Printf("no notifications enabled notification emitted.")
+	log.Printf("No notifications enabled notification emitted.")
 }
 
 // fileExists checks if a file exists and is not a directory before we

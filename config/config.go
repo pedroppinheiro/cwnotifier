@@ -36,15 +36,19 @@ type User struct {
 
 // Notification holds the notification's configuration
 type Notification struct {
-	EnableIncidentsWithoutOwnerNotification    bool
-	EnableTasksWithoutOwnerNotification        bool
-	EnableIncidentsWithClosedTasksNotification bool
-	gotMarshalled                              bool
+	EnableIncidentsWithoutOwnerNotification        bool
+	EnableTasksWithoutOwnerNotification            bool
+	EnableIncidentsWithClosedTasksNotification     bool
+	EnableChangesThatNeedToBeValidatedNotification bool
+	gotMarshalled                                  bool
 }
 
 // IsNotificationsEnabled returns true if there is at least one notification enabled, otherwise returns false
 func (notification Notification) IsNotificationsEnabled() bool {
-	return notification.EnableIncidentsWithClosedTasksNotification || notification.EnableIncidentsWithoutOwnerNotification || notification.EnableTasksWithoutOwnerNotification
+	return notification.EnableIncidentsWithClosedTasksNotification ||
+		notification.EnableIncidentsWithoutOwnerNotification ||
+		notification.EnableTasksWithoutOwnerNotification ||
+		notification.EnableChangesThatNeedToBeValidatedNotification
 }
 
 // UnmarshalYAML interface is implemented to give a custom behaviour when marshalling the yaml to the "Regex" field.
@@ -77,6 +81,13 @@ func (notification *Notification) UnmarshalYAML(unmarshal func(interface{}) erro
 		notification.EnableIncidentsWithClosedTasksNotification = true
 	}
 
+	value, isPresent = m["enableChangesThatNeedToBeValidatedNotification"]
+	if isPresent {
+		notification.EnableChangesThatNeedToBeValidatedNotification = value
+	} else {
+		notification.EnableChangesThatNeedToBeValidatedNotification = true
+	}
+
 	notification.gotMarshalled = true
 
 	return nil
@@ -94,15 +105,15 @@ func (j Job) Validate() string {
 	validationMessage := ""
 
 	if !IsValidTime(j.Start) {
-		validationMessage += fmt.Sprintf("Invalid time given: %v. Should be in the form of hh:mm\n", j.Start)
+		validationMessage += fmt.Sprintf("job.start is invalid. Should be in the form of hh:mm, but got \"%v\"\n", j.Start)
 	}
 
 	if !IsValidTime(j.End) {
-		validationMessage += fmt.Sprintf("Invalid time given: %v. Should be in the form of hh:mm\n", j.End)
+		validationMessage += fmt.Sprintf("job.end is invalid. Should be in the form of hh:mm, but got \"%v\"\n", j.End)
 	}
 
 	if j.SleepMinutes == 0 {
-		validationMessage += fmt.Sprintln("Config value job.sleepMinutes cannot be 0")
+		validationMessage += fmt.Sprintln("job.sleepMinutes cannot be 0")
 	}
 
 	return validationMessage
