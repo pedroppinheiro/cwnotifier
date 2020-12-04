@@ -105,7 +105,7 @@ func init() {
 
 // NotifyIncidentsWithoutOwner emits the windows notification about a priority cherwell's incident
 func NotifyIncidentsWithoutOwner(incidents string) {
-	incidentsWithoutOwnerNotification.Message = incidentsWithoutOwnerNotification.Message + "\n" + incidents
+	incidentsWithoutOwnerNotification.Message = utf8toASCII(incidentsWithoutOwnerNotificationMessage) + "\n" + incidents
 	err := incidentsWithoutOwnerNotification.Push()
 	if err != nil {
 		log.Panic(err)
@@ -116,7 +116,7 @@ func NotifyIncidentsWithoutOwner(incidents string) {
 
 // NotifyTasksWithoutOwner emits the windows notification about a priority cherwell's incident
 func NotifyTasksWithoutOwner(tasks string) {
-	tasksWithoutOwnerNotification.Message = tasksWithoutOwnerNotification.Message + "\n" + tasks
+	tasksWithoutOwnerNotification.Message = utf8toASCII(tasksWithoutOwnerNotificationMessage) + "\n" + tasks
 	err := tasksWithoutOwnerNotification.Push()
 	if err != nil {
 		log.Panic(err)
@@ -127,7 +127,7 @@ func NotifyTasksWithoutOwner(tasks string) {
 
 // NotifyIncidentsWithClosedTasks emits the windows notification about a priority cherwell's incident
 func NotifyIncidentsWithClosedTasks(incidents string) {
-	incidentsWithClosedTasksNotification.Message = incidentsWithClosedTasksNotification.Message + "\n" + incidents
+	incidentsWithClosedTasksNotification.Message = utf8toASCII(incidentsWithClosedTasksNotificationMessage) + "\n" + incidents
 	err := incidentsWithClosedTasksNotification.Push()
 	if err != nil {
 		log.Panic(err)
@@ -138,7 +138,7 @@ func NotifyIncidentsWithClosedTasks(incidents string) {
 
 // NotifyChangesThatNeedToBeValidated emits the windows notification about a change that has been resolved and can be validated
 func NotifyChangesThatNeedToBeValidated(changes string) {
-	changesThatNeedToBeValidatedNotification.Message = changesThatNeedToBeValidatedNotification.Message + "\n" + changes
+	changesThatNeedToBeValidatedNotification.Message = utf8toASCII(changesThatNeedToBeValidatedNotificationMessage) + "\n" + changes
 	err := changesThatNeedToBeValidatedNotification.Push()
 	if err != nil {
 		log.Panic(err)
