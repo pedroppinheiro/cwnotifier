@@ -17,17 +17,20 @@ const (
 
 	//Tarefas prioritárias (1 ou 2) para a GERIN que estão sem responsável ou atribuídas para mim. Ao iniciar a tarefa a notificação deve parar
 	getTasksWithoutOwnerQuery string = `select t.ParentPublicID from Tarefas t
-													where t.OwnedByTeam = :team
-													and t.Status in ('Encaminhada', 'Nova')
-													and (t.EmailResponsavel = :email or t.EmailResponsavel = '')
-													and (select i.Prioridade from Incidente i where i.NumeroIncidente = t.ParentPublicID) in (1,2)`
+where t.OwnedByTeam = :team
+and t.Status in ('Encaminhada', 'Nova')
+and (t.EmailResponsavel = :email or t.EmailResponsavel = '')
+and (select i.Prioridade from Incidente i where i.NumeroIncidente = t.ParentPublicID) in (1,2)`
 
 	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
-	getIncidentsWithTasksQuery string = `select i.NumeroIncidente, i.Tarefas from Incidente i
-															where i.OwnedByTeam = :team
-															and i.Prioridade in (1,2) 
-															and i.Status not in ('Resolvido', 'Fechado')
-															and (i.OwnerID = '' or i.OwnedBy = :userName)`
+	getIncidentsWithTasksQuery string = `select i.NumeroIncidente, i.Tarefas, count(*) from Incidente i
+join Tarefas t on i.NumeroIncidente = t.ParentPublicID
+where i.OwnedByTeam = :team
+and i.Prioridade in (1,2) 
+and i.Status not in ('Resolvido', 'Fechado')
+and (i.OwnerID = '' or i.OwnedBy = :userName)
+and t.Status = 'Fechada'
+group by i.NumeroIncidente, i.Tarefas, t.Status`
 
 	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
 	getChangesThatNeedToBeValidatedQuery string = `select NumeroMudanca from Mudanca where Status = 'Resolvida' and CreatedBy = :userName`
@@ -122,9 +125,10 @@ func GetTasksWithoutOwner(teamName string, email string) []string {
 // GetIncidentsWithClosedTasks returns incidents with tasks
 func GetIncidentsWithClosedTasks(teamName string, userName string) []string {
 	var (
-		incidentNumber  string
-		taskDescription string
-		results         []string
+		incidentNumber      string
+		taskDescription     string
+		numberOfClosedTasks string
+		results             []string
 	)
 
 	rows, err := executeQuery(getIncidentsWithTasksQuery, sql.Named("team", teamName), sql.Named("userName", userName))
@@ -133,12 +137,12 @@ func GetIncidentsWithClosedTasks(teamName string, userName string) []string {
 		log.Panic("Error getting incidents with tasks. ", err)
 	}
 	for rows.Next() {
-		err := rows.Scan(&incidentNumber, &taskDescription)
+		err := rows.Scan(&incidentNumber, &taskDescription, &numberOfClosedTasks)
 		if err != nil {
 			log.Panic(err)
 		}
 
-		if isIncidentWithClosedTasks(taskDescription) {
+		if getTotalTasksFromTaskDescription(taskDescription) == numberOfClosedTasks {
 			results = append(results, incidentNumber)
 		}
 	}
@@ -147,13 +151,16 @@ func GetIncidentsWithClosedTasks(teamName string, userName string) []string {
 	return results
 }
 
-var taskDescriptionRegex = regexp.MustCompile(`(?mi)(\d+) Fechadas de \\1 Tarefas`)
+var taskDescriptionRegex = regexp.MustCompile(`(?mi)\d+ Fechadas de (?P<totalTasks>\d+) Tarefas`)
 
-func isIncidentWithClosedTasks(taskDescription string) bool {
-	if len(taskDescriptionRegex.FindStringIndex(taskDescription)) > 0 {
-		return true
+func getTotalTasksFromTaskDescription(taskDescription string) string {
+	match := taskDescriptionRegex.FindStringSubmatch(taskDescription)
+
+	if match == nil || len(match) == 0 {
+		log.Panicf("invalid task description found, was expecting \"\\d Fechadas de \\d Tarefas\", but found \"%v\"", taskDescription)
 	}
-	return false
+
+	return match[1]
 }
 
 // GetChangesThatNeedToBeValidated returns changes that need to be validated
