@@ -68,7 +68,7 @@ func onReady() {
 	defer database.CloseConnection()
 
 	notifier.NotifyProgramStart()
-	for {
+	for ; true; time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute) {
 		shouldNotify, err := shouldCheckDatabase(time.Now(), configuration.Job)
 		if !shouldNotify || err != nil {
 			log.Println("Skipped checking cherwell. ", err)
@@ -90,8 +90,6 @@ func onReady() {
 		if configuration.Notification.EnableChangesThatNeedToBeValidatedNotification {
 			notifyChangesThatNeedToBeValidated(configuration)
 		}
-
-		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
 	}
 }
 
