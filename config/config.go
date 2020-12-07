@@ -40,6 +40,7 @@ type Notification struct {
 	EnableTasksWithoutOwnerNotification            bool
 	EnableIncidentsWithClosedTasksNotification     bool
 	EnableChangesThatNeedToBeValidatedNotification bool
+	EnableChangesThatRequireUpdateNotification     bool
 	gotMarshalled                                  bool
 }
 
@@ -48,7 +49,8 @@ func (notification Notification) IsNotificationsEnabled() bool {
 	return notification.EnableIncidentsWithClosedTasksNotification ||
 		notification.EnableIncidentsWithoutOwnerNotification ||
 		notification.EnableTasksWithoutOwnerNotification ||
-		notification.EnableChangesThatNeedToBeValidatedNotification
+		notification.EnableChangesThatNeedToBeValidatedNotification ||
+		notification.EnableChangesThatRequireUpdateNotification
 }
 
 // UnmarshalYAML interface is implemented to give a custom behaviour when marshalling the yaml to the "Regex" field.
@@ -86,6 +88,13 @@ func (notification *Notification) UnmarshalYAML(unmarshal func(interface{}) erro
 		notification.EnableChangesThatNeedToBeValidatedNotification = value
 	} else {
 		notification.EnableChangesThatNeedToBeValidatedNotification = true
+	}
+
+	value, isPresent = m["enableChangesThatRequireUpdateNotification"]
+	if isPresent {
+		notification.EnableChangesThatRequireUpdateNotification = value
+	} else {
+		notification.EnableChangesThatRequireUpdateNotification = true
 	}
 
 	notification.gotMarshalled = true
@@ -173,9 +182,11 @@ func ReadConfiguration(yamlConfiguration []byte) (Configuration, error) {
 	}
 
 	if !configuration.Notification.gotMarshalled {
-		configuration.Notification.EnableIncidentsWithClosedTasksNotification = true
 		configuration.Notification.EnableIncidentsWithoutOwnerNotification = true
 		configuration.Notification.EnableTasksWithoutOwnerNotification = true
+		configuration.Notification.EnableIncidentsWithClosedTasksNotification = true
+		configuration.Notification.EnableChangesThatNeedToBeValidatedNotification = true
+		configuration.Notification.EnableChangesThatRequireUpdateNotification = true
 	}
 
 	return configuration, err

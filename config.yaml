@@ -10,6 +10,7 @@
 #    enableTasksWithoutOwnerNotification: true
 #    enableIncidentsWithClosedTasksNotification: true
 #    enableChangesThatNeedToBeValidatedNotification: true
+#    enableChangesThatRequireUpdateNotification: true
 
 # job: # Configurações sobre o JOB
 #   start: "08:00" # A partir de qual horário o programa irá checar o cherwell
@@ -33,6 +34,7 @@ notification:
    enableTasksWithoutOwnerNotification: true
    enableIncidentsWithClosedTasksNotification: true
    enableChangesThatNeedToBeValidatedNotification: true
+   enableChangesThatRequireUpdateNotification: true
 
 job:
   start: "08:00"

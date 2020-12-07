@@ -25,6 +25,9 @@ const (
 	changesThatNeedToBeValidatedNotificationTitle   string = "Aviso de mudança que precisa ser validada"
 	changesThatNeedToBeValidatedNotificationMessage string = "Há mudanças que foram resolvidas e já podem ser validadas!"
 
+	changesThatRequireUpdateNotificationTitle   string = "Aviso de mudança pendente de atualização"
+	changesThatRequireUpdateNotificationMessage string = "Há mudanças que estão pendentes de atualização para poderem ser aprovadas!"
+
 	noNotificationsEnabledTitle   string = "Nenhum notificação habilitada"
 	noNotificationsEnabledMessage string = "O programa está encerrando pois nenhuma notificação está habilitada. Por favor habilite no arquivo de configuração"
 
@@ -63,6 +66,13 @@ var changesThatNeedToBeValidatedNotification toast.Notification = toast.Notifica
 	Duration: "short",
 }
 
+var changesThatRequireUpdateNotification toast.Notification = toast.Notification{
+	AppID:    "CWNotifier",
+	Title:    utf8toASCII(changesThatRequireUpdateNotificationTitle),
+	Message:  utf8toASCII(changesThatRequireUpdateNotificationMessage),
+	Duration: "short",
+}
+
 var startNotification toast.Notification = toast.Notification{
 	AppID:    "CWNotifier",
 	Title:    utf8toASCII(programStartNotificationTitle),
@@ -98,6 +108,7 @@ func init() {
 		tasksWithoutOwnerNotification.Icon = cherwellLogoLocation
 		incidentsWithClosedTasksNotification.Icon = cherwellLogoLocation
 		changesThatNeedToBeValidatedNotification.Icon = cherwellLogoLocation
+		changesThatRequireUpdateNotification.Icon = cherwellLogoLocation
 	} else {
 		log.Printf("File \"%v\" was not found.\n", cherwellLogoLocation)
 	}
@@ -145,6 +156,17 @@ func NotifyChangesThatNeedToBeValidated(changes string) {
 	}
 
 	log.Printf("changesThatNeedToBeValidatedNotification emitted.")
+}
+
+// NotifyChangesThatRequireUpdate emits the windows notification about a change that require update
+func NotifyChangesThatRequireUpdate(changes string) {
+	changesThatRequireUpdateNotification.Message = utf8toASCII(changesThatRequireUpdateNotificationMessage) + "\n" + changes
+	err := changesThatRequireUpdateNotification.Push()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("changesThatRequireUpdateNotification emitted.")
 }
 
 // NotifyProgramStart emits the windows notification about the start of the program

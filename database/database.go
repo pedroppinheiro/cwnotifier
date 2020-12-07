@@ -32,8 +32,11 @@ and (i.OwnerID = '' or i.OwnedBy = :userName)
 and t.Status = 'Fechada'
 group by i.NumeroIncidente, i.Tarefas, t.Status`
 
-	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
+	//Mudanças (RDMs) que precisam ser validadas
 	getChangesThatNeedToBeValidatedQuery string = `select NumeroMudanca from Mudanca where Status = 'Resolvida' and CreatedBy = :userName`
+
+	//Mudanças (RDMs) que estão pendentes de atualização (Atualização Necessária)
+	getChangesThatRequireUpdateQuery string = `select NumeroMudanca from Mudanca where Status = 'Atualização Necessária' and CreatedBy = :userName`
 )
 
 var connection *sql.DB
@@ -185,6 +188,31 @@ func GetChangesThatNeedToBeValidated(userName string) []string {
 	}
 
 	log.Printf("GetChangesThatNeedToBeValidated: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetChangesThatRequireUpdate returns changes that need require update
+func GetChangesThatRequireUpdate(userName string) []string {
+	var (
+		changeNumber string
+		results      []string
+	)
+
+	rows, err := executeQuery(getChangesThatRequireUpdateQuery, sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting changes that require update. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&changeNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, changeNumber)
+	}
+
+	log.Printf("GetChangesThatRequireUpdate: Found %v results: %v", len(results), results)
 	return results
 }
 

@@ -33,6 +33,7 @@ notification:
    enableTasksWithoutOwnerNotification: true
    enableIncidentsWithClosedTasksNotification: true
    enableChangesThatNeedToBeValidatedNotification: true
+   enableChangesThatRequireUpdateNotification: true
 
 job:
   start: "08:00"

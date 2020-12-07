@@ -90,6 +90,10 @@ func onReady() {
 		if configuration.Notification.EnableChangesThatNeedToBeValidatedNotification {
 			notifyChangesThatNeedToBeValidated(configuration)
 		}
+
+		if configuration.Notification.EnableChangesThatRequireUpdateNotification {
+			notifyChangesThatRequireUpdate(configuration)
+		}
 	}
 }
 
@@ -118,6 +122,13 @@ func notifyChangesThatNeedToBeValidated(configuration config.Configuration) {
 	changes := database.GetChangesThatNeedToBeValidated(configuration.User.Name)
 	if len(changes) >= 1 {
 		notifier.NotifyChangesThatNeedToBeValidated(strings.Join(changes[:], ","))
+	}
+}
+
+func notifyChangesThatRequireUpdate(configuration config.Configuration) {
+	changes := database.GetChangesThatRequireUpdate(configuration.User.Name)
+	if len(changes) >= 1 {
+		notifier.NotifyChangesThatRequireUpdate(strings.Join(changes[:], ","))
 	}
 }
 
