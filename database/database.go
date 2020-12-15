@@ -4,14 +4,39 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
+	"regexp"
 
 	"github.com/pedroppinheiro/cwnotifier/config"
 )
 
 const (
-	verifyQuerySQL                string = "select 1"
-	getNumberOfPriorityTasksQuery string = "select count(*) from Incidente where OwnedByTeam = 'SUSIS - GERIN' and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
+	verifyQuerySQL string = "select 1"
+
+	//Chamados prioritários (1,2) que foram encaminhados para a GERIN e que estão sem responsável. Ao se atribuir ao chamado a notificação deve parar
+	getIncidentsWithoutOwnerQuery string = "select NumeroIncidente from Incidente where OwnedByTeam = :team and Prioridade in (1,2) and OwnerID = '' and Status in ('Encaminhado', 'Novo')"
+
+	//Tarefas prioritárias (1 ou 2) para a GERIN que estão sem responsável ou atribuídas para mim. Ao iniciar a tarefa a notificação deve parar
+	getTasksWithoutOwnerQuery string = `select t.ParentPublicID from Tarefas t
+where t.OwnedByTeam = :team
+and t.Status in ('Encaminhada', 'Nova')
+and (t.EmailResponsavel = :email or t.EmailResponsavel = '')
+and (select i.Prioridade from Incidente i where i.NumeroIncidente = t.ParentPublicID) in (1,2)`
+
+	//Chamados prioritários (1 ou 2) para a GERIN que estão atribuídas para mim e que já podem ser concluídas. Ao concluir o chamado ou criar uma nova tarefa a notificação deve parar
+	getIncidentsWithTasksQuery string = `select i.NumeroIncidente, i.Tarefas, count(*) from Incidente i
+join Tarefas t on i.NumeroIncidente = t.ParentPublicID
+where i.OwnedByTeam = :team
+and i.Prioridade in (1,2) 
+and i.Status not in ('Resolvido', 'Fechado')
+and (i.OwnerID = '' or i.OwnedBy = :userName)
+and t.Status = 'Fechada'
+group by i.NumeroIncidente, i.Tarefas, t.Status`
+
+	//Mudanças (RDMs) que precisam ser validadas
+	getChangesThatNeedToBeValidatedQuery string = `select NumeroMudanca from Mudanca where Status = 'Resolvida' and CreatedBy = :userName`
+
+	//Mudanças (RDMs) que estão pendentes de atualização (Atualização Necessária)
+	getChangesThatRequireUpdateQuery string = `select NumeroMudanca from Mudanca where Status = 'Atualização Necessária' and CreatedBy = :userName`
 )
 
 var connection *sql.DB
@@ -43,35 +68,152 @@ func verifyConnection() error {
 	return err
 }
 
-func executeQuery(query string) (*sql.Rows, error) {
+func executeQuery(query string, args ...interface{}) (*sql.Rows, error) {
 	log.Printf("Executing query \"%v\".", query)
-	return connection.Query(query)
+	return connection.Query(query, args...)
 }
 
-// GetNumberOfPriorityTasks returns the number of priority tasks
-func GetNumberOfPriorityTasks() int {
-	var queryResult string
+// GetIncidentsWithoutOwner returns the incidents without owner
+func GetIncidentsWithoutOwner(teamName string) []string {
+	var (
+		incidentNumber string
+		results        []string
+	)
 
-	rows, err := executeQuery(getNumberOfPriorityTasksQuery)
+	rows, err := executeQuery(getIncidentsWithoutOwnerQuery, sql.Named("team", teamName))
 
 	if err != nil {
-		log.Panic(err)
+		log.Panic("Error getting incidents without owner. ", err)
 	}
 	for rows.Next() {
-		err := rows.Scan(&queryResult)
+		err := rows.Scan(&incidentNumber)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Printf("Query returned: %v\n", queryResult)
+
+		results = append(results, incidentNumber)
+
 	}
 
-	numberOfImportantTasks, err := strconv.Atoi(queryResult)
+	log.Printf("GetIncidentsWithoutOwner: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetTasksWithoutOwner returns the tasks without owner
+func GetTasksWithoutOwner(teamName string, email string) []string {
+	var (
+		taskNumber string
+		results    []string
+	)
+
+	rows, err := executeQuery(getTasksWithoutOwnerQuery, sql.Named("team", teamName), sql.Named("email", email))
 
 	if err != nil {
-		log.Panic(err)
+		log.Panic("Error getting tasks without owner. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&taskNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, taskNumber)
+
 	}
 
-	return numberOfImportantTasks
+	log.Printf("GetTasksWithoutOwner: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetIncidentsWithClosedTasks returns incidents with tasks
+func GetIncidentsWithClosedTasks(teamName string, userName string) []string {
+	var (
+		incidentNumber      string
+		taskDescription     string
+		numberOfClosedTasks string
+		results             []string
+	)
+
+	rows, err := executeQuery(getIncidentsWithTasksQuery, sql.Named("team", teamName), sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting incidents with tasks. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&incidentNumber, &taskDescription, &numberOfClosedTasks)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		if getTotalTasksFromTaskDescription(taskDescription) == numberOfClosedTasks {
+			results = append(results, incidentNumber)
+		}
+	}
+
+	log.Printf("GetIncidentsWithClosedTasks: Found %v results: %v", len(results), results)
+	return results
+}
+
+var taskDescriptionRegex = regexp.MustCompile(`(?mi)\d+ Fechadas de (?P<totalTasks>\d+) Tarefas`)
+
+func getTotalTasksFromTaskDescription(taskDescription string) string {
+	match := taskDescriptionRegex.FindStringSubmatch(taskDescription)
+
+	if match == nil || len(match) == 0 {
+		log.Panicf("invalid task description found, was expecting \"\\d Fechadas de \\d Tarefas\", but found \"%v\"", taskDescription)
+	}
+
+	return match[1]
+}
+
+// GetChangesThatNeedToBeValidated returns changes that need to be validated
+func GetChangesThatNeedToBeValidated(userName string) []string {
+	var (
+		changeNumber string
+		results      []string
+	)
+
+	rows, err := executeQuery(getChangesThatNeedToBeValidatedQuery, sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting changes that need to be validated. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&changeNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, changeNumber)
+	}
+
+	log.Printf("GetChangesThatNeedToBeValidated: Found %v results: %v", len(results), results)
+	return results
+}
+
+// GetChangesThatRequireUpdate returns changes that need require update
+func GetChangesThatRequireUpdate(userName string) []string {
+	var (
+		changeNumber string
+		results      []string
+	)
+
+	rows, err := executeQuery(getChangesThatRequireUpdateQuery, sql.Named("userName", userName))
+
+	if err != nil {
+		log.Panic("Error getting changes that require update. ", err)
+	}
+	for rows.Next() {
+		err := rows.Scan(&changeNumber)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		results = append(results, changeNumber)
+	}
+
+	log.Printf("GetChangesThatRequireUpdate: Found %v results: %v", len(results), results)
+	return results
 }
 
 // CloseConnection closes the connection

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -51,22 +52,83 @@ func onReady() {
 		log.Panic(err)
 	}
 
+	// used to maintain compatibility with previous versions in which the default was "SUSIS - GERIN"
+	if configuration.User.Team == "" {
+		configuration.User.Team = "SUSIS - GERIN"
+		log.Println("user.team is empty, using \"SUSIS - GERIN\" as fallback.")
+	}
+
+	if !configuration.Notification.IsNotificationsEnabled() {
+		notifier.NotifyNoNotificationsEnabled()
+		systray.Quit()
+		return
+	}
+
 	database.Connect(configuration.Database)
 	defer database.CloseConnection()
 
 	notifier.NotifyProgramStart()
-	for {
-		shouldRun, err := shouldCheckDatabase(time.Now(), configuration.Job)
-
-		if shouldRun && err == nil {
-			if database.GetNumberOfPriorityTasks() >= 1 {
-				notifier.Notify()
-			}
-		} else {
+	for ; true; time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute) {
+		shouldNotify, err := shouldCheckDatabase(time.Now(), configuration.Job)
+		if !shouldNotify || err != nil {
 			log.Println("Skipped checking cherwell. ", err)
+			continue
 		}
 
-		time.Sleep(time.Duration(configuration.Job.SleepMinutes) * time.Minute)
+		if configuration.Notification.EnableIncidentsWithoutOwnerNotification {
+			notifyIncidentsWithoutOwnerNotification(configuration)
+		}
+
+		if configuration.Notification.EnableTasksWithoutOwnerNotification {
+			notifyTasksWithoutOwnerNotification(configuration)
+		}
+
+		if configuration.Notification.EnableIncidentsWithClosedTasksNotification {
+			notifyIncidentsWithClosedTasksNotification(configuration)
+		}
+
+		if configuration.Notification.EnableChangesThatNeedToBeValidatedNotification {
+			notifyChangesThatNeedToBeValidated(configuration)
+		}
+
+		if configuration.Notification.EnableChangesThatRequireUpdateNotification {
+			notifyChangesThatRequireUpdate(configuration)
+		}
+	}
+}
+
+func notifyIncidentsWithoutOwnerNotification(configuration config.Configuration) {
+	incidents := database.GetIncidentsWithoutOwner(configuration.User.Team)
+	if len(incidents) >= 1 {
+		notifier.NotifyIncidentsWithoutOwner(strings.Join(incidents[:], ","))
+	}
+}
+
+func notifyTasksWithoutOwnerNotification(configuration config.Configuration) {
+	tasks := database.GetTasksWithoutOwner(configuration.User.Team, configuration.User.Email)
+	if len(tasks) >= 1 {
+		notifier.NotifyTasksWithoutOwner(strings.Join(tasks[:], ","))
+	}
+}
+
+func notifyIncidentsWithClosedTasksNotification(configuration config.Configuration) {
+	incidents := database.GetIncidentsWithClosedTasks(configuration.User.Team, configuration.User.Name)
+	if len(incidents) >= 1 {
+		notifier.NotifyIncidentsWithClosedTasks(strings.Join(incidents[:], ","))
+	}
+}
+
+func notifyChangesThatNeedToBeValidated(configuration config.Configuration) {
+	changes := database.GetChangesThatNeedToBeValidated(configuration.User.Name)
+	if len(changes) >= 1 {
+		notifier.NotifyChangesThatNeedToBeValidated(strings.Join(changes[:], ","))
+	}
+}
+
+func notifyChangesThatRequireUpdate(configuration config.Configuration) {
+	changes := database.GetChangesThatRequireUpdate(configuration.User.Name)
+	if len(changes) >= 1 {
+		notifier.NotifyChangesThatRequireUpdate(strings.Join(changes[:], ","))
 	}
 }
 
@@ -150,15 +212,15 @@ func isWeekend(givenTime time.Time) bool {
 // https://stackoverflow.com/a/55093788/1252947
 func inTimeSpan(start, end, check string) (bool, error) {
 	if !config.IsValidTime(start) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", start)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", start)
 	}
 
 	if !config.IsValidTime(end) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", end)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", end)
 	}
 
 	if !config.IsValidTime(check) {
-		return false, fmt.Errorf("Invalid time given: %v. Should be in the form of hh:mm", check)
+		return false, fmt.Errorf("Invalid time given: \"%v\". Should be in the form of hh:mm", check)
 	}
 
 	newLayout := "15:04"

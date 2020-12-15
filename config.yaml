@@ -1,11 +1,49 @@
-job:
-  start: "08:00" # A partir de qual horário o programa irá checar o cherwell
-  end: "17:59" # Até qual horário o programa irá checar o cherwell
-  sleepMinutes: 5 # De quanto em quanto tempo em minutos o programa deve checar o cherwell
+#This file is used to configure some parts of the program. Bellow are the file with its default values
+
+# user: # Configurações de usuário (usadas para buscar informações no banco de dados do cherwell)
+#   name: "" # Nome completo
+#   email: "" # Email
+#   team: "" # Nome da equipe no cherwell, ex: "SUSIS - GERIN"
+
+# notification: # Configurações de notificação
+#    enableIncidentsWithoutOwnerNotification: true
+#    enableTasksWithoutOwnerNotification: true
+#    enableIncidentsWithClosedTasksNotification: true
+#    enableChangesThatNeedToBeValidatedNotification: true
+#    enableChangesThatRequireUpdateNotification: true
+
+# job: # Configurações sobre o JOB
+#   start: "08:00" # A partir de qual horário o programa irá checar o cherwell
+#   end: "17:59" # Até qual horário o programa irá checar o cherwell
+#   sleepMinutes: 1 # De quanto em quanto tempo em minutos o programa deve checar o cherwell
       
-database: # Dados para a conexão com o banco de dados
+# database: # Configurações da conexão com o banco de dados
+#   server: "" # Instância do banco de dados do cherwell
+#   port: 1433 # Porta padrão do cherwell
+#   user: "" # Nome do usuário do banco de dados do cherwell
+#   password: "" # Senha do usuário do banco de dados do cherwell
+#   databaseName: "" # Nome do banco de dados do cherwell
+
+user:
+  name: ""
+  email: ""
+  team: ""
+
+notification:
+   enableIncidentsWithoutOwnerNotification: true
+   enableTasksWithoutOwnerNotification: true
+   enableIncidentsWithClosedTasksNotification: true
+   enableChangesThatNeedToBeValidatedNotification: true
+   enableChangesThatRequireUpdateNotification: true
+
+job:
+  start: "08:00"
+  end: "17:59"
+  sleepMinutes: 1
+
+database:
   server: ""
   port: 1433
   user: ""
   password: ""
-  databaseName: "" # Nome do banco de dados do cherwell
+  databaseName: ""
